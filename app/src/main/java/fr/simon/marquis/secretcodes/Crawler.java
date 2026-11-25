@@ -152,8 +152,32 @@ final class Crawler {
             } catch (PackageManager.NameNotFoundException | IOException | XmlPullParserException e) {
                 e.printStackTrace();
             }
+            addRuntimeCodes(pi, pm, codes, secretCodes);
         }
         return secretCodes;
+    }
+
+    /**
+     * Codes whose receivers are registered at runtime (Context.registerReceiver) never appear in a manifest
+     * and no public API lists them, so the well-known ones are added when their app is installed.
+     * shortcut: hard-coded list, extend it when new runtime codes are found (dumpsys activity broadcasts).
+     */
+    private static final String[][] RUNTIME_CODES = {
+            {"com.android.server.telecom", "823241", "823240", "826275"},
+            {"com.google.android.gms", "426"},
+    };
+
+    private static void addRuntimeCodes(PackageInfo pi, PackageManager pm, Set<String> codes, List<SecretCode> secretCodes) {
+        for (String[] entry : RUNTIME_CODES) {
+            if (!entry[0].equals(pi.packageName)) {
+                continue;
+            }
+            for (int i = 1; i < entry.length; i++) {
+                if (codes.add(pi.packageName + "/" + entry[i])) {
+                    secretCodes.add(new SecretCode(entry[i], pi.packageName, pi.applicationInfo.loadIcon(pm), String.valueOf(pi.applicationInfo.loadLabel(pm))));
+                }
+            }
+        }
     }
 
 
