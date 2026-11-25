@@ -171,6 +171,14 @@ final class Crawler {
             {"*", "com.android.server.telecom", "823241", "823240", "826275"},
             {"*", "com.google.android.gms", "426"},
             {"Nothing", "com.android.phone", "6833284"},
+            // seen on a Zenfone 12 Ultra (Android 16)
+            {"asus", "com.android.server.telecom", "828282"},
+            {"asus", "com.android.phone", "7533967", "8070", "71547263", "71547266", "72547263", "72547266",
+                    "7415963", "33284745", "3642623344", "3642625533"},
+            {"asus", "com.asus.instanttranslationservice", "4870", "4871", "4873", "48720", "48721", "48722680",
+                    "48722681", "48741", "48742", "48743", "48744", "48745", "48746", "48747", "48748", "48749",
+                    "487410", "487411", "487412", "487413", "487414", "487415", "487416", "48750", "48751",
+                    "487150", "487155", "487160", "487165", "487170", "487175", "487180"},
     };
 
     static boolean runtimeEntryApplies(String[] entry, String manufacturer, String packageName) {
