@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     public void itemClicked(SecretCode code) {
         // Third-party apps cannot send secret codes since Android 10, and a prefilled dialer only offers to place a
         // call, so copy the code for the user to type or paste into the dialer.
-        String text = "*#*#" + code.getCode() + "#*#*";
+        String text = code.getInput();
         ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         clipboard.setPrimaryClip(ClipData.newPlainText(code.getLabel(), text));
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) { // Android 13+ shows its own copy confirmation

@@ -15,13 +15,22 @@ import android.text.TextUtils;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 final class Crawler {
 
@@ -156,6 +165,7 @@ final class Crawler {
                 e.printStackTrace();
             }
             addRuntimeCodes(context, pi, pm, codes, secretCodes);
+            addCalculatorCodes(context, pi, pm, codes, secretCodes);
         }
         return secretCodes;
     }
@@ -180,6 +190,75 @@ final class Crawler {
                     "487410", "487411", "487412", "487413", "487414", "487415", "487416", "48750", "48751",
                     "487150", "487155", "487160", "487165", "487170", "487175", "487180"},
     };
+
+    /** Calculators that hide codes typed as e.g. ".12345+" followed by "=" (ASUS). */
+    private static final String[] CALCULATOR_PACKAGES = {"com.asus.calculator"};
+    // ".12345+" or the π/e sequence "πeπe741,603eπeπ" (the comparison string includes digit grouping)
+    private static final Pattern CALCULATOR_CODE = Pattern.compile("\\.\\d+\\+|π[πeE\\d,]*\\d[πeE\\d,]*π");
+
+    private static void addCalculatorCodes(Context context, PackageInfo pi, PackageManager pm, Set<String> codes, List<SecretCode> secretCodes) {
+        boolean calculator = false;
+        for (String p : CALCULATOR_PACKAGES) {
+            calculator |= p.equals(pi.packageName);
+        }
+        if (!calculator) {
+            return;
+        }
+        Set<String> found = new TreeSet<>();
+        try (ZipFile apk = new ZipFile(pi.applicationInfo.sourceDir)) {
+            Enumeration<? extends ZipEntry> entries = apk.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                if (entry.getName().matches("classes\\d*\\.dex")) {
+                    try (InputStream in = apk.getInputStream(entry)) {
+                        found.addAll(calculatorCodes(readAll(in)));
+                    }
+                }
+            }
+        } catch (IOException | RuntimeException e) {
+            e.printStackTrace(); // a malformed or unreadable APK only loses its calculator codes
+            return;
+        }
+        Drawable icon = loadLightIcon(context, pi, pm, pi.applicationInfo.icon);
+        String label = String.valueOf(pi.applicationInfo.loadLabel(pm));
+        for (String input : found) {
+            if (codes.add(pi.packageName + "/" + input)) {
+                secretCodes.add(new SecretCode(input, input, pi.packageName, icon, label));
+            }
+        }
+    }
+
+    /** Returns the calculator inputs (code followed by "=") among the strings of a dex file. */
+    static Set<String> calculatorCodes(byte[] dex) {
+        Set<String> inputs = new TreeSet<>();
+        ByteBuffer buf = ByteBuffer.wrap(dex).order(ByteOrder.LITTLE_ENDIAN);
+        int count = buf.getInt(0x38);
+        int idsOff = buf.getInt(0x3C);
+        for (int i = 0; i < count; i++) {
+            int pos = buf.getInt(idsOff + 4 * i);
+            while ((dex[pos++] & 0x80) != 0) {
+                // skip the uleb128 utf16 length
+            }
+            int end = pos;
+            while (dex[end] != 0) {
+                end++;
+            }
+            String s = new String(dex, pos, end - pos, StandardCharsets.UTF_8);
+            if (CALCULATOR_CODE.matcher(s).matches()) {
+                inputs.add(s.replace(",", "").replace('E', 'e') + "=");
+            }
+        }
+        return inputs;
+    }
+
+    private static byte[] readAll(InputStream in) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] chunk = new byte[64 * 1024];
+        for (int n; (n = in.read(chunk)) != -1; ) {
+            out.write(chunk, 0, n);
+        }
+        return out.toByteArray();
+    }
 
     static boolean runtimeEntryApplies(String[] entry, String manufacturer, String packageName) {
         return ("*".equals(entry[0]) || entry[0].equalsIgnoreCase(manufacturer)) && entry[1].equals(packageName);
