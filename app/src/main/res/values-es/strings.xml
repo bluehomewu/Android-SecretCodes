@@ -27,7 +27,6 @@
     <string name="action_about">Acerca de</string>
     <string name="action_close">Cerrar</string>
 
-    <string name="execute_code">Ejecutando el código *#*#%1$s#*#*</string>
 
     <string name="action_start">Iniciar el proceso de busqueda</string>
     <string name="action_online_database">Base de datos Online</string>

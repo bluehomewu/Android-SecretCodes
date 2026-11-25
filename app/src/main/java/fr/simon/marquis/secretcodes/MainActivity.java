@@ -3,6 +3,7 @@ package fr.simon.marquis.secretcodes;
 import android.animation.Keyframe;
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -123,10 +124,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     @Override
     public void itemClicked(SecretCode code) {
-        Toast.makeText(MainActivity.this, getString(R.string.execute_code, code.getCode()), Toast.LENGTH_SHORT).show();
+        // Since Android 10 only the default dialer may send secret codes, and OEM codes (e.g. vivo) use their own
+        // action and scheme; prefilling the dialer lets the system route any code. fromParts encodes the '#'.
         try {
-            sendBroadcast(new Intent("android.provider.Telephony.SECRET_CODE", Uri.parse("android_secret_code://" + code.getCode())));
-        } catch (SecurityException se) {
+            startActivity(new Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", "*#*#" + code.getCode() + "#*#*", null)));
+        } catch (ActivityNotFoundException e) {
             Toast.makeText(MainActivity.this, R.string.security_exception, Toast.LENGTH_LONG).show();
         }
     }
