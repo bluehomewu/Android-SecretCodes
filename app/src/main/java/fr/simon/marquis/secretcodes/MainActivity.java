@@ -6,13 +6,13 @@ import android.animation.PropertyValuesHolder;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.Loader;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.Loader;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         countView = (TextView) bar.getCustomView();
 
         // emptyView.animate().alpha(0).setDuration(getResources().getInteger(android.R.integer.config_longAnimTime));
-        getSupportLoaderManager().initLoader(LOADER_ID, null, this);
+        LoaderManager.getInstance(this).initLoader(LOADER_ID, null, this);
     }
 
     @Override
@@ -61,15 +61,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_about:
-                showAboutDialog();
-                break;
-            case R.id.action_online_database:
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.online_database_url))));
-                break;
-            default:
-                break;
+        int id = item.getItemId();
+        if (id == R.id.action_about) {
+            showAboutDialog();
+        } else if (id == R.id.action_online_database) {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.online_database_url))));
         }
         return super.onOptionsItemSelected(item);
     }
