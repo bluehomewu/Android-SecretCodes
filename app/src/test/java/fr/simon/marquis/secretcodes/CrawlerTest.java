@@ -46,14 +46,18 @@ public class CrawlerTest {
     }
 
     @Test
-    public void runtimeCodesRespectManufacturer() {
-        String[] any = {"*", "com.android.server.telecom", "823241"};
-        String[] nothing = {"Nothing", "com.android.phone", "6833284"};
-        assertTrue(Crawler.runtimeEntryApplies(any, "vivo", "com.android.server.telecom"));
-        assertTrue(Crawler.runtimeEntryApplies(nothing, "Nothing", "com.android.phone"));
-        assertTrue(Crawler.runtimeEntryApplies(nothing, "NOTHING", "com.android.phone"));
-        assertFalse(Crawler.runtimeEntryApplies(nothing, "vivo", "com.android.phone"));
-        assertFalse(Crawler.runtimeEntryApplies(nothing, null, "com.android.phone"));
-        assertFalse(Crawler.runtimeEntryApplies(any, "vivo", "com.android.phone"));
+    public void runtimeCodesRespectManufacturerAndSdk() {
+        String[] any = {"*", "*", "com.android.server.telecom", "823241"};
+        String[] nothing = {"Nothing", "*", "com.android.phone", "6833284"};
+        String[] android16 = {"*", "36", "com.android.server.telecom", "828282"};
+        assertTrue(Crawler.runtimeEntryApplies(any, "vivo", 37, "com.android.server.telecom"));
+        assertTrue(Crawler.runtimeEntryApplies(nothing, "Nothing", 37, "com.android.phone"));
+        assertTrue(Crawler.runtimeEntryApplies(nothing, "NOTHING", 37, "com.android.phone"));
+        assertFalse(Crawler.runtimeEntryApplies(nothing, "vivo", 37, "com.android.phone"));
+        assertFalse(Crawler.runtimeEntryApplies(nothing, null, 37, "com.android.phone"));
+        assertFalse(Crawler.runtimeEntryApplies(any, "vivo", 37, "com.android.phone"));
+        assertTrue(Crawler.runtimeEntryApplies(android16, "vivo", 36, "com.android.server.telecom"));
+        assertTrue(Crawler.runtimeEntryApplies(android16, "asus", 36, "com.android.server.telecom"));
+        assertFalse(Crawler.runtimeEntryApplies(android16, "vivo", 37, "com.android.server.telecom"));
     }
 }

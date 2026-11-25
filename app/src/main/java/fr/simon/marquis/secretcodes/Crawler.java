@@ -173,19 +173,20 @@ final class Crawler {
     /**
      * Codes whose receivers are registered at runtime (Context.registerReceiver) never appear in a manifest
      * and no public API lists them, so the well-known ones are added when their app is installed.
-     * Each entry is {manufacturer ("*" for any), package, codes...}: vendor codes often live in packages every
-     * phone has (e.g. com.android.phone), so they must be limited to that vendor's devices.
+     * Each entry is {manufacturer, SDK_INT, package, codes...} ("*" matches any): vendor codes often live in
+     * packages every phone has (e.g. com.android.phone), so they must be limited to that vendor's devices.
      * shortcut: hard-coded list, extend it when new runtime codes are found (dumpsys activity broadcasts).
      */
     static final String[][] RUNTIME_CODES = {
-            {"*", "com.android.server.telecom", "823241", "823240", "826275"},
-            {"*", "com.google.android.gms", "426"},
-            {"Nothing", "com.android.phone", "6833284"},
+            {"*", "*", "com.android.server.telecom", "823241", "823240", "826275"},
+            // AOSP Telecom developer menu, registered on Android 16 but not on the Android 17 devices tested
+            {"*", "36", "com.android.server.telecom", "828282"},
+            {"*", "*", "com.google.android.gms", "426"},
+            {"Nothing", "*", "com.android.phone", "6833284"},
             // seen on a Zenfone 12 Ultra (Android 16)
-            {"asus", "com.android.server.telecom", "828282"},
-            {"asus", "com.android.phone", "7533967", "8070", "71547263", "71547266", "72547263", "72547266",
+            {"asus", "*", "com.android.phone", "7533967", "8070", "71547263", "71547266", "72547263", "72547266",
                     "7415963", "33284745", "3642623344", "3642625533"},
-            {"asus", "com.asus.instanttranslationservice", "4870", "4871", "4873", "48720", "48721", "48722680",
+            {"asus", "*", "com.asus.instanttranslationservice", "4870", "4871", "4873", "48720", "48721", "48722680",
                     "48722681", "48741", "48742", "48743", "48744", "48745", "48746", "48747", "48748", "48749",
                     "487410", "487411", "487412", "487413", "487414", "487415", "487416", "48750", "48751",
                     "487150", "487155", "487160", "487165", "487170", "487175", "487180"},
@@ -260,16 +261,18 @@ final class Crawler {
         return out.toByteArray();
     }
 
-    static boolean runtimeEntryApplies(String[] entry, String manufacturer, String packageName) {
-        return ("*".equals(entry[0]) || entry[0].equalsIgnoreCase(manufacturer)) && entry[1].equals(packageName);
+    static boolean runtimeEntryApplies(String[] entry, String manufacturer, int sdk, String packageName) {
+        return ("*".equals(entry[0]) || entry[0].equalsIgnoreCase(manufacturer))
+                && ("*".equals(entry[1]) || entry[1].equals(String.valueOf(sdk)))
+                && entry[2].equals(packageName);
     }
 
     private static void addRuntimeCodes(Context context, PackageInfo pi, PackageManager pm, Set<String> codes, List<SecretCode> secretCodes) {
         for (String[] entry : RUNTIME_CODES) {
-            if (!runtimeEntryApplies(entry, Build.MANUFACTURER, pi.packageName)) {
+            if (!runtimeEntryApplies(entry, Build.MANUFACTURER, Build.VERSION.SDK_INT, pi.packageName)) {
                 continue;
             }
-            for (int i = 2; i < entry.length; i++) {
+            for (int i = 3; i < entry.length; i++) {
                 if (codes.add(pi.packageName + "/" + entry[i])) {
                     Drawable icon = loadLightIcon(context, pi, pm, pi.applicationInfo.icon);
                     secretCodes.add(new SecretCode(entry[i], pi.packageName, icon, String.valueOf(pi.applicationInfo.loadLabel(pm))));
