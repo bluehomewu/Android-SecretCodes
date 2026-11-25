@@ -75,11 +75,9 @@ public class SecretCodeAdapter extends RecyclerView.Adapter<SecretCodeAdapter.Vi
 
     @Override
     public long getItemId(int position) {
-        try {
-            return Long.valueOf(codes.get(position).getCode());
-        } catch (NumberFormatException e) {
-            return codes.get(position).getLabel().hashCode();
-        }
+        // a code is only unique per app; the icon uri carries the package name
+        SecretCode code = codes.get(position);
+        return (code.getIcon() + "/" + code.getCode()).hashCode();
     }
 
     public void setData(List<SecretCode> codes) {

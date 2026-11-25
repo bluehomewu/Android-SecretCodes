@@ -95,8 +95,8 @@ final class Crawler {
                         // <data> attributes merge across the whole intent-filter, so scheme and host may sit on different tags
                         if (TAG_INTENT_FILTER.equals(xrp.getName()) && hasSecretCodeScheme) {
                             for (String c : hosts) {
-                                if (!TextUtils.isEmpty(c) && !codes.contains(c)) {
-                                    codes.add(c);
+                                // the same code may be handled by several apps: keep one entry per package
+                                if (!TextUtils.isEmpty(c) && codes.add(pi.packageName + "/" + c)) {
                                     String label = getBestString(pi, pm, applicationLabel, componentLabel, intentFilterLabel);
                                     Uri icon = getBestIcon(pi, applicationIcon, componentIcon, intentFilterIcon);
                                     secretCodes.add(new SecretCode(c, icon, label));
