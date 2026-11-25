@@ -72,6 +72,8 @@ final class Crawler {
                 int componentIcon = 0;
                 int intentFilterIcon = 0;
 
+                boolean hasSecretCodeScheme = false;
+                ArrayList<String> hosts = new ArrayList<>();
 
                 ArrayList<String> path = new ArrayList<>();
                 while (xrp.next() != XmlPullParser.END_DOCUMENT) {
@@ -82,6 +84,17 @@ final class Crawler {
                     if (xrp.getEventType() == XmlPullParser.END_TAG) {
                         if (!path.isEmpty()) {
                             path.remove(path.size() - 1);
+                        }
+                        // <data> attributes merge across the whole intent-filter, so scheme and host may sit on different tags
+                        if (TAG_INTENT_FILTER.equals(xrp.getName()) && hasSecretCodeScheme) {
+                            for (String c : hosts) {
+                                if (!TextUtils.isEmpty(c) && !codes.contains(c)) {
+                                    codes.add(c);
+                                    String label = getBestString(pi, pm, applicationLabel, componentLabel, intentFilterLabel);
+                                    Uri icon = getBestIcon(pi, applicationIcon, componentIcon, intentFilterIcon);
+                                    secretCodes.add(new SecretCode(c, icon, label));
+                                }
+                            }
                         }
                     }
                     if (xrp.getEventType() == XmlPullParser.START_TAG) {
@@ -111,16 +124,16 @@ final class Crawler {
                             case TAG_INTENT_FILTER:
                                 intentFilterLabel = xrp.getAttributeResourceValue(NAMESPACE, ATTR_VAL_LABEL, 0);
                                 intentFilterIcon = xrp.getAttributeResourceValue(NAMESPACE, ATTR_VAL_ICON, 0);
+                                hasSecretCodeScheme = false;
+                                hosts.clear();
                                 break;
                             case TAG_DATA:
                                 if (ATTR_VAL_ANDROID_SECRET_CODE.equals(xrp.getAttributeValue(NAMESPACE, ATTR_VAL_SCHEME))) {
-                                    String c = xrp.getAttributeValue(NAMESPACE, ATTR_VAL_HOST);
-                                    if (!TextUtils.isEmpty(c) && !codes.contains(c)) {
-                                        codes.add(c);
-                                        String label = getBestString(pi, pm, applicationLabel, componentLabel, intentFilterLabel);
-                                        Uri icon = getBestIcon(pi, applicationIcon, componentIcon, intentFilterIcon);
-                                        secretCodes.add(new SecretCode(c, icon, label));
-                                    }
+                                    hasSecretCodeScheme = true;
+                                }
+                                String host = xrp.getAttributeValue(NAMESPACE, ATTR_VAL_HOST);
+                                if (host != null) {
+                                    hosts.add(host);
                                 }
                                 break;
                         }
