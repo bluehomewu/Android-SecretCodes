@@ -37,5 +37,5 @@
     <string name="action_online_database">Online Database</string>
 
     <string name="zero_secret_codes">There is no secret code on your device…</string>
-    <string name="security_exception">Your device isn\'t compatible…\nTry to execute the code directly from the dialer app.</string>
+    <string name="code_copied">%1$s copied to the clipboard</string>
 </resources>

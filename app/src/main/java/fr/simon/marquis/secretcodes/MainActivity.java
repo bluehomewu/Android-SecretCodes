@@ -3,8 +3,10 @@ package fr.simon.marquis.secretcodes;
 import android.animation.Keyframe;
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
-import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
+import android.os.Build;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.InsetDrawable;
@@ -124,12 +126,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     @Override
     public void itemClicked(SecretCode code) {
-        // Since Android 10 only the default dialer may send secret codes, and OEM codes (e.g. vivo) use their own
-        // action and scheme; prefilling the dialer lets the system route any code. fromParts encodes the '#'.
-        try {
-            startActivity(new Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", "*#*#" + code.getCode() + "#*#*", null)));
-        } catch (ActivityNotFoundException e) {
-            Toast.makeText(MainActivity.this, R.string.security_exception, Toast.LENGTH_LONG).show();
+        // Third-party apps cannot send secret codes since Android 10, and a prefilled dialer only offers to place a
+        // call, so copy the code for the user to type or paste into the dialer.
+        String text = "*#*#" + code.getCode() + "#*#*";
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText(code.getLabel(), text));
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) { // Android 13+ shows its own copy confirmation
+            Toast.makeText(MainActivity.this, getString(R.string.code_copied, text), Toast.LENGTH_SHORT).show();
         }
     }
 
