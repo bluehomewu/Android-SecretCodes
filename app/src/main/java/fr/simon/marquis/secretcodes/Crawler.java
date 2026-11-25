@@ -4,6 +4,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.content.res.XmlResourceParser;
 import android.net.Uri;
 import androidx.annotation.NonNull;
@@ -12,6 +13,7 @@ import android.text.TextUtils;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,6 +29,9 @@ final class Crawler {
     private static final String ATTR_VAL_HOST = "host";
     private static final String ATTR_VAL_SCHEME = "scheme";
     private static final String ATTR_VAL_ANDROID_SECRET_CODE = "android_secret_code";
+    private static final String TAG_MANIFEST = "manifest";
+    private static final String ATTR_PACKAGE = "package";
+    private static final String ATTR_SPLIT = "split";
     private static final String TAG_APPLICATION = "application";
     private static final String TAG_ACTIVITY = "activity";
     private static final String TAG_ACTIVITY_ALIAS = "activity-alias";
@@ -62,7 +67,7 @@ final class Crawler {
                 //CrawlerNotification.notify(getContext(), secretCodes, currentProgress);
             }
             try {
-                XmlResourceParser xrp = context.createPackageContext(pi.packageName, 0).getAssets().openXmlResourceParser(ANDROID_MANIFEST);
+                XmlResourceParser xrp = openBaseManifest(context.createPackageContext(pi.packageName, 0).getAssets(), pi.packageName);
 
                 int applicationLabel = 0;
                 int componentLabel = 0;
@@ -146,6 +151,31 @@ final class Crawler {
         return secretCodes;
     }
 
+
+    /**
+     * Without a cookie, AssetManager searches its APKs from the last one, which returns a split APK's or an
+     * overlay's manifest for apps installed as split APKs (e.g. Play services). Walk the cookies (1-based,
+     * framework first) and return the parser positioned on the base APK's &lt;manifest&gt; tag.
+     */
+    private static XmlResourceParser openBaseManifest(AssetManager assets, String packageName) throws IOException, XmlPullParserException {
+        for (int cookie = 1; ; cookie++) {
+            XmlResourceParser xrp;
+            try {
+                xrp = assets.openXmlResourceParser(cookie, ANDROID_MANIFEST);
+            } catch (FileNotFoundException e) {
+                // shortcut: an APK without a manifest ends the walk early, then we fall back to the default lookup
+                return assets.openXmlResourceParser(ANDROID_MANIFEST);
+            }
+            while (xrp.next() != XmlPullParser.START_TAG && xrp.getEventType() != XmlPullParser.END_DOCUMENT) {
+            }
+            if (TAG_MANIFEST.equals(xrp.getName())
+                    && packageName.equals(xrp.getAttributeValue(null, ATTR_PACKAGE))
+                    && xrp.getAttributeValue(null, ATTR_SPLIT) == null) {
+                return xrp;
+            }
+            xrp.close();
+        }
+    }
 
     private static Uri getBestIcon(PackageInfo p, int application, int component, int intentFilter) {
         int icon = intentFilter != 0 ? intentFilter : component != 0 ? component : application;
