@@ -4,12 +4,19 @@ import android.animation.Keyframe;
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.InsetDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import androidx.loader.app.LoaderManager;
 import androidx.loader.content.Loader;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -42,6 +49,24 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new GridLayoutManager(this, getResources().getInteger(R.integer.numColumns), LinearLayoutManager.VERTICAL, false));
         recyclerView.setAdapter(new fr.simon.marquis.secretcodes.SecretCodeAdapter(this, this));
+
+        // targetSdk 35+ forces edge-to-edge: keep content below the action bar (AppCompat's top inset
+        // already includes it) and paint the status bar area with colorPrimaryDark from the decor view.
+        View decor = getWindow().getDecorView();
+        View content = findViewById(android.R.id.content);
+        final Drawable windowBackground = decor.getBackground();
+        // new drawable: setBackgroundColor would recolor the window background ColorDrawable in place
+        decor.setBackground(new ColorDrawable(ContextCompat.getColor(this, R.color.colorPrimaryDark)));
+        final int padBottom = recyclerView.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(content, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(bars.left, bars.top, bars.right, 0);
+            // a background also fills the padding, so inset it to leave the status bar area to the decor
+            v.setBackground(new InsetDrawable(windowBackground, 0, bars.top, 0, 0));
+            // the list still scrolls behind the navigation bar, but its last item stays reachable
+            recyclerView.setPadding(recyclerView.getPaddingLeft(), recyclerView.getPaddingTop(), recyclerView.getPaddingRight(), padBottom + bars.bottom);
+            return insets;
+        });
 
         ActionBar bar = getSupportActionBar();
         assert bar != null;
