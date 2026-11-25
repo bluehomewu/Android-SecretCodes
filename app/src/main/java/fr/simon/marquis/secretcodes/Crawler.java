@@ -139,7 +139,10 @@ final class Crawler {
                                 if (scheme != null && SECRET_CODE_SCHEME.matcher(scheme).matches()) {
                                     hasSecretCodeScheme = true;
                                 }
-                                String host = xrp.getAttributeValue(NAMESPACE, ATTR_VAL_HOST);
+                                // android:host="@string/..." is stored as a reference; read the app's string instead of "@id"
+                                int hostRes = xrp.getAttributeResourceValue(NAMESPACE, ATTR_VAL_HOST, 0);
+                                CharSequence resolved = hostRes != 0 ? pm.getText(pi.packageName, hostRes, pi.applicationInfo) : null;
+                                String host = resolved != null ? resolved.toString() : xrp.getAttributeValue(NAMESPACE, ATTR_VAL_HOST);
                                 if (host != null) {
                                     hosts.add(host);
                                 }
