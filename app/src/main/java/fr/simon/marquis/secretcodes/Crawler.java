@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
 import android.graphics.drawable.Drawable;
 import androidx.annotation.NonNull;
@@ -97,7 +99,7 @@ final class Crawler {
                                 // the same code may be handled by several apps: keep one entry per package
                                 if (!TextUtils.isEmpty(c) && codes.add(pi.packageName + "/" + c)) {
                                     String label = getBestString(pi, pm, applicationLabel, componentLabel, intentFilterLabel);
-                                    Drawable icon = getBestIcon(pi, pm, applicationIcon, componentIcon, intentFilterIcon);
+                                    Drawable icon = getBestIcon(context, pi, pm, applicationIcon, componentIcon, intentFilterIcon);
                                     secretCodes.add(new SecretCode(c, pi.packageName, icon, label));
                                 }
                             }
@@ -152,7 +154,7 @@ final class Crawler {
             } catch (PackageManager.NameNotFoundException | IOException | XmlPullParserException e) {
                 e.printStackTrace();
             }
-            addRuntimeCodes(pi, pm, codes, secretCodes);
+            addRuntimeCodes(context, pi, pm, codes, secretCodes);
         }
         return secretCodes;
     }
@@ -167,14 +169,15 @@ final class Crawler {
             {"com.google.android.gms", "426"},
     };
 
-    private static void addRuntimeCodes(PackageInfo pi, PackageManager pm, Set<String> codes, List<SecretCode> secretCodes) {
+    private static void addRuntimeCodes(Context context, PackageInfo pi, PackageManager pm, Set<String> codes, List<SecretCode> secretCodes) {
         for (String[] entry : RUNTIME_CODES) {
             if (!entry[0].equals(pi.packageName)) {
                 continue;
             }
             for (int i = 1; i < entry.length; i++) {
                 if (codes.add(pi.packageName + "/" + entry[i])) {
-                    secretCodes.add(new SecretCode(entry[i], pi.packageName, pi.applicationInfo.loadIcon(pm), String.valueOf(pi.applicationInfo.loadLabel(pm))));
+                    Drawable icon = loadLightIcon(context, pi, pm, pi.applicationInfo.icon);
+                    secretCodes.add(new SecretCode(entry[i], pi.packageName, icon, String.valueOf(pi.applicationInfo.loadLabel(pm))));
                 }
             }
         }
@@ -206,11 +209,25 @@ final class Crawler {
         }
     }
 
-    /** Loaded through PackageManager, which also inflates XML/adaptive icons that bitmap decoders cannot read. */
-    private static Drawable getBestIcon(PackageInfo p, PackageManager pm, int application, int component, int intentFilter) {
-        int icon = intentFilter != 0 ? intentFilter : component != 0 ? component : application;
-        Drawable drawable = icon != 0 ? pm.getDrawable(p.packageName, icon, p.applicationInfo) : null;
-        return drawable != null ? drawable : p.applicationInfo.loadIcon(pm);
+    private static Drawable getBestIcon(Context context, PackageInfo p, PackageManager pm, int application, int component, int intentFilter) {
+        return loadLightIcon(context, p, pm, intentFilter != 0 ? intentFilter : component != 0 ? component : application);
+    }
+
+    /**
+     * Inflates the app's icon (XML/adaptive icons included) in day mode: the cards are always light, and icons
+     * with night-mode colors (e.g. white on dark) would be invisible when the system is in dark mode.
+     */
+    private static Drawable loadLightIcon(Context context, PackageInfo p, PackageManager pm, int icon) {
+        if (icon != 0) {
+            try {
+                Configuration config = new Configuration(context.getResources().getConfiguration());
+                config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | Configuration.UI_MODE_NIGHT_NO;
+                return context.createPackageContext(p.packageName, 0).createConfigurationContext(config).getDrawable(icon);
+            } catch (PackageManager.NameNotFoundException | Resources.NotFoundException e) {
+                // fall back to the system's icon below
+            }
+        }
+        return p.applicationInfo.loadIcon(pm);
     }
 
     private static String getBestString(PackageInfo p, PackageManager pm, int application, int component, int intentFilter) {
