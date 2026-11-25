@@ -8,6 +8,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import androidx.annotation.NonNull;
 import android.text.TextUtils;
 
@@ -162,19 +163,26 @@ final class Crawler {
     /**
      * Codes whose receivers are registered at runtime (Context.registerReceiver) never appear in a manifest
      * and no public API lists them, so the well-known ones are added when their app is installed.
+     * Each entry is {manufacturer ("*" for any), package, codes...}: vendor codes often live in packages every
+     * phone has (e.g. com.android.phone), so they must be limited to that vendor's devices.
      * shortcut: hard-coded list, extend it when new runtime codes are found (dumpsys activity broadcasts).
      */
-    private static final String[][] RUNTIME_CODES = {
-            {"com.android.server.telecom", "823241", "823240", "826275"},
-            {"com.google.android.gms", "426"},
+    static final String[][] RUNTIME_CODES = {
+            {"*", "com.android.server.telecom", "823241", "823240", "826275"},
+            {"*", "com.google.android.gms", "426"},
+            {"Nothing", "com.android.phone", "6833284"},
     };
+
+    static boolean runtimeEntryApplies(String[] entry, String manufacturer, String packageName) {
+        return ("*".equals(entry[0]) || entry[0].equalsIgnoreCase(manufacturer)) && entry[1].equals(packageName);
+    }
 
     private static void addRuntimeCodes(Context context, PackageInfo pi, PackageManager pm, Set<String> codes, List<SecretCode> secretCodes) {
         for (String[] entry : RUNTIME_CODES) {
-            if (!entry[0].equals(pi.packageName)) {
+            if (!runtimeEntryApplies(entry, Build.MANUFACTURER, pi.packageName)) {
                 continue;
             }
-            for (int i = 1; i < entry.length; i++) {
+            for (int i = 2; i < entry.length; i++) {
                 if (codes.add(pi.packageName + "/" + entry[i])) {
                     Drawable icon = loadLightIcon(context, pi, pm, pi.applicationInfo.icon);
                     secretCodes.add(new SecretCode(entry[i], pi.packageName, icon, String.valueOf(pi.applicationInfo.loadLabel(pm))));
