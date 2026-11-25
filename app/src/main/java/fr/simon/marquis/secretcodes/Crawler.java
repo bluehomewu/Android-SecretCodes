@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 final class Crawler {
 
@@ -28,7 +29,8 @@ final class Crawler {
     private static final String ATTR_VAL_ICON = "icon";
     private static final String ATTR_VAL_HOST = "host";
     private static final String ATTR_VAL_SCHEME = "scheme";
-    private static final String ATTR_VAL_ANDROID_SECRET_CODE = "android_secret_code";
+    // AOSP uses android_secret_code; OEMs add their own, e.g. vivo android_vivo_sec_code and iqoo_secret_code
+    static final Pattern SECRET_CODE_SCHEME = Pattern.compile("[a-z0-9_]*_sec(ret)?_code");
     private static final String TAG_MANIFEST = "manifest";
     private static final String ATTR_PACKAGE = "package";
     private static final String ATTR_SPLIT = "split";
@@ -133,7 +135,8 @@ final class Crawler {
                                 hosts.clear();
                                 break;
                             case TAG_DATA:
-                                if (ATTR_VAL_ANDROID_SECRET_CODE.equals(xrp.getAttributeValue(NAMESPACE, ATTR_VAL_SCHEME))) {
+                                String scheme = xrp.getAttributeValue(NAMESPACE, ATTR_VAL_SCHEME);
+                                if (scheme != null && SECRET_CODE_SCHEME.matcher(scheme).matches()) {
                                     hasSecretCodeScheme = true;
                                 }
                                 String host = xrp.getAttributeValue(NAMESPACE, ATTR_VAL_HOST);
