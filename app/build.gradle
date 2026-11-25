@@ -10,8 +10,8 @@ android {
         applicationId "fr.simon.marquis.secretcodes"
         minSdk 21
         targetSdk 36
-        versionCode 217
-        versionName "2.1.7"
+        versionCode 218
+        versionName "2.1.8"
     }
     buildTypes {
         release {
@@ -24,5 +24,4 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'com.squareup.picasso:picasso:2.5.2'
 }

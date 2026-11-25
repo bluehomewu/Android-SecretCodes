@@ -1,12 +1,11 @@
 package fr.simon.marquis.secretcodes;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.content.res.XmlResourceParser;
-import android.net.Uri;
+import android.graphics.drawable.Drawable;
 import androidx.annotation.NonNull;
 import android.text.TextUtils;
 
@@ -98,8 +97,8 @@ final class Crawler {
                                 // the same code may be handled by several apps: keep one entry per package
                                 if (!TextUtils.isEmpty(c) && codes.add(pi.packageName + "/" + c)) {
                                     String label = getBestString(pi, pm, applicationLabel, componentLabel, intentFilterLabel);
-                                    Uri icon = getBestIcon(pi, applicationIcon, componentIcon, intentFilterIcon);
-                                    secretCodes.add(new SecretCode(c, icon, label));
+                                    Drawable icon = getBestIcon(pi, pm, applicationIcon, componentIcon, intentFilterIcon);
+                                    secretCodes.add(new SecretCode(c, pi.packageName, icon, label));
                                 }
                             }
                         }
@@ -183,10 +182,11 @@ final class Crawler {
         }
     }
 
-    private static Uri getBestIcon(PackageInfo p, int application, int component, int intentFilter) {
+    /** Loaded through PackageManager, which also inflates XML/adaptive icons that bitmap decoders cannot read. */
+    private static Drawable getBestIcon(PackageInfo p, PackageManager pm, int application, int component, int intentFilter) {
         int icon = intentFilter != 0 ? intentFilter : component != 0 ? component : application;
-        return new Uri.Builder().scheme(ContentResolver.SCHEME_ANDROID_RESOURCE).authority(p.packageName).appendPath(Integer.toString(icon)).build();
-        // p.applicationInfo.loadIcon(pm);
+        Drawable drawable = icon != 0 ? pm.getDrawable(p.packageName, icon, p.applicationInfo) : null;
+        return drawable != null ? drawable : p.applicationInfo.loadIcon(pm);
     }
 
     private static String getBestString(PackageInfo p, PackageManager pm, int application, int component, int intentFilter) {

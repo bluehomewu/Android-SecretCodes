@@ -1,7 +1,6 @@
 package fr.simon.marquis.secretcodes;
 
 import android.content.Context;
-import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -9,8 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,15 +26,12 @@ public class SecretCodeAdapter extends RecyclerView.Adapter<SecretCodeAdapter.Vi
     };
 
     @NonNull
-    private final Picasso picasso;
-    @NonNull
     private final ItemClickListener itemClickListener;
 
     @NonNull
     private List<SecretCode> codes = new ArrayList<>();
 
     public SecretCodeAdapter(@NonNull Context context, @NonNull ItemClickListener itemClickListener) {
-        picasso = Picasso.with(context);
         this.itemClickListener = itemClickListener;
         setHasStableIds(true);
     }
@@ -53,12 +47,7 @@ public class SecretCodeAdapter extends RecyclerView.Adapter<SecretCodeAdapter.Vi
         final SecretCode code = codes.get(position);
         holder.code.setText(code.getCode());
         holder.label.setText(code.getLabel());
-        Uri uri = code.getIcon();
-        if (uri != null) {
-            picasso.load(uri).error(R.drawable.ic_texture).into(holder.icon);
-        } else {
-            picasso.load(R.drawable.ic_texture).into(holder.icon);
-        }
+        holder.icon.setImageDrawable(code.getIcon());
         holder.background.setBackgroundResource(BACKGROUNDS[Math.abs(code.getLabel().hashCode() % 8)]);
         holder.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -75,9 +64,9 @@ public class SecretCodeAdapter extends RecyclerView.Adapter<SecretCodeAdapter.Vi
 
     @Override
     public long getItemId(int position) {
-        // a code is only unique per app; the icon uri carries the package name
+        // a code is only unique per app
         SecretCode code = codes.get(position);
-        return (code.getIcon() + "/" + code.getCode()).hashCode();
+        return (code.getPackageName() + "/" + code.getCode()).hashCode();
     }
 
     public void setData(List<SecretCode> codes) {

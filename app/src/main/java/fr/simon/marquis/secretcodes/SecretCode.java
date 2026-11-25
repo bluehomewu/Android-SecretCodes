@@ -1,15 +1,17 @@
 package fr.simon.marquis.secretcodes;
 
-import android.net.Uri;
+import android.graphics.drawable.Drawable;
 
 class SecretCode {
 
     private final String code;
+    private final String packageName;
     private final String label;
-    private final Uri icon;
+    private final Drawable icon;
 
-    public SecretCode(String code, Uri icon, String label) {
+    public SecretCode(String code, String packageName, Drawable icon, String label) {
         this.code = code;
+        this.packageName = packageName;
         this.icon = icon;
         this.label = label;
     }
@@ -19,7 +21,7 @@ class SecretCode {
         return label;
     }
 
-    public Uri getIcon() {
+    public Drawable getIcon() {
         return icon;
     }
 
@@ -27,10 +29,15 @@ class SecretCode {
         return code;
     }
 
+    public String getPackageName() {
+        return packageName;
+    }
+
     @Override
     public String toString() {
         return "SecretCode{" +
                 "code='" + code + '\'' +
+                ", packageName='" + packageName + '\'' +
                 ", label='" + label + '\'' +
                 '}';
     }
